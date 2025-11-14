@@ -35,10 +35,10 @@ export default async function ProjectPage({
                 <Image
                   src="/colibria-logo.png"
                   alt="Colibria"
-                  width={180}
-                  height={50}
+                  width={200}
+                  height={60}
                   priority
-                  className="h-12 w-auto cursor-pointer"
+                  className="h-10 w-auto cursor-pointer"
                 />
               </Link>
               <div className="h-8 w-px bg-border" />
