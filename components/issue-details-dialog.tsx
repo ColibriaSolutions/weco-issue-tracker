@@ -22,6 +22,8 @@ import { updateIssueStatus } from '@/app/actions/issue-actions'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import Image from 'next/image'
+import { CommentList } from '@/components/comments/comment-list'
+import { CommentForm } from '@/components/comments/comment-form'
 
 interface Issue {
   id: string
@@ -50,6 +52,7 @@ export function IssueDetailsDialog({
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState(issue.status)
   const [updating, setUpdating] = useState(false)
+  const [refreshComments, setRefreshComments] = useState(0)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -77,7 +80,7 @@ export function IssueDetailsDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -92,47 +95,58 @@ export function IssueDetailsDialog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <div>
-            <Label className="text-base font-semibold">Description</Label>
-            <p className="mt-2 text-muted-foreground whitespace-pre-wrap">
-              {issue.description}
-            </p>
-          </div>
-
-          {issue.screenshot_url && (
+        <div className="flex-1 overflow-y-auto pr-2">
+          <div className="space-y-6">
             <div>
-              <Label className="text-base font-semibold">Screenshot</Label>
-              <div className="mt-2 border rounded-lg overflow-hidden">
-                <Image
-                  src={issue.screenshot_url || "/placeholder.svg"}
-                  alt="Issue screenshot"
-                  width={800}
-                  height={600}
-                  className="w-full h-auto"
-                />
-              </div>
+              <Label className="text-base font-semibold">Description</Label>
+              <p className="mt-2 text-muted-foreground whitespace-pre-wrap">
+                {issue.description}
+              </p>
             </div>
-          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="status" className="text-base font-semibold">
-              Status
-            </Label>
-            <Select
-              value={status}
-              onValueChange={handleStatusChange}
-              disabled={updating}
-            >
-              <SelectTrigger id="status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
+            {issue.screenshot_url && (
+              <div>
+                <Label className="text-base font-semibold">Screenshot</Label>
+                <div className="mt-2 border rounded-lg overflow-hidden">
+                  <Image
+                    src={issue.screenshot_url || "/placeholder.svg"}
+                    alt="Issue screenshot"
+                    width={800}
+                    height={600}
+                    className="w-full h-auto"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="status" className="text-base font-semibold">
+                Status
+              </Label>
+              <Select
+                value={status}
+                onValueChange={handleStatusChange}
+                disabled={updating}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-base font-semibold">Comments</Label>
+              <CommentList issueId={issue.id} refreshTrigger={refreshComments} />
+              <CommentForm
+                issueId={issue.id}
+                onCommentAdded={() => setRefreshComments(prev => prev + 1)}
+              />
+            </div>
           </div>
         </div>
       </DialogContent>

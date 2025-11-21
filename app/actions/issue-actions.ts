@@ -3,11 +3,12 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { put } from '@vercel/blob'
+import { createIssueSchema, updateStatusSchema } from '@/lib/validations'
 
 export async function uploadScreenshot(formData: FormData) {
   try {
     const file = formData.get('file') as File
-    
+
     if (!file) {
       return { error: 'No file provided' }
     }
@@ -24,13 +25,7 @@ export async function uploadScreenshot(formData: FormData) {
   }
 }
 
-export async function createIssue({
-  projectId,
-  title,
-  description,
-  priority,
-  screenshotUrl,
-}: {
+export async function createIssue(input: {
   projectId: string
   title: string
   description: string
@@ -38,6 +33,16 @@ export async function createIssue({
   screenshotUrl: string | null
 }) {
   try {
+    const validatedFields = createIssueSchema.safeParse(input)
+
+    if (!validatedFields.success) {
+      return {
+        error: validatedFields.error.flatten().fieldErrors,
+      }
+    }
+
+    const { projectId, title, description, priority, screenshotUrl } = validatedFields.data
+
     const supabase = await createServerClient()
 
     const { data, error } = await supabase
@@ -70,11 +75,17 @@ export async function createIssue({
 
 export async function updateIssueStatus(issueId: string, status: string) {
   try {
+    const validation = updateStatusSchema.safeParse({ issueId, status })
+
+    if (!validation.success) {
+      return { error: 'Invalid status or issue ID' }
+    }
+
     const supabase = await createServerClient()
 
     const { data, error } = await supabase
       .from('issues')
-      .update({ status })
+      .update({ status: validation.data.status })
       .eq('id', issueId)
       .select()
       .single()

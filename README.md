@@ -37,93 +37,6 @@ npm install
 pnpm install
 # or
 yarn install
-\`\`\`
-
-### 3. Environment Variables
-
-Create a `.env.local` file with the following variables:
-
-\`\`\`env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-
-# Vercel Blob
-BLOB_READ_WRITE_TOKEN=your_blob_token
-\`\`\`
-
-### 4. Database Setup
-
-Run the SQL scripts in the `scripts` folder to create the necessary tables:
-
-1. Go to your Supabase project dashboard
-2. Navigate to the SQL Editor
-3. Copy and paste the contents of `scripts/create-bug-tracker-tables.sql`
-4. Run the script
-
-This will create:
-- `projects` table - Stores project information
-- `issues` table - Stores bug reports with screenshot URLs
-- Indexes for optimal query performance
-
-### 5. Run Development Server
-
-\`\`\`bash
-npm run dev
-# or
-pnpm dev
-# or
-yarn dev
-\`\`\`
-
-Open [http://localhost:3000](http://localhost:3000) to see your bug tracker.
-
-## Usage
-
-### Creating a Project
-
-1. Click the "New Project" button on the home page
-2. Enter a project name and description
-3. Click "Create Project"
-
-### Logging an Issue
-
-1. Click on a project card to view its details
-2. Click "Report Issue"
-3. Fill in the issue details:
-   - Title
-   - Description
-   - Priority level
-   - Screenshot (optional - drag & drop or click to upload)
-4. Click "Create Issue"
-
-### Managing Issues
-
-- Click on any issue card to view full details
-- Update the status by clicking the status dropdown
-- Issues are organized in columns by status (Open, In Progress, Closed)
-
-## Project Structure
-
-\`\`\`
-├── app/
-│   ├── actions/           # Server actions for database operations
-│   ├── projects/[id]/     # Individual project pages
-│   └── page.tsx           # Home page
-├── components/            # React components
-├── lib/
-│   └── supabase/         # Supabase client configuration
-├── public/
-│   └── colibria-logo.png # Brand logo
-└── scripts/              # Database setup scripts
-\`\`\`
-
-## Database Schema
-
-### Projects Table
-- `id` (UUID) - Primary key
-- `name` (TEXT) - Project name
 - `description` (TEXT) - Project description
 - `created_at` (TIMESTAMPTZ) - Creation timestamp
 - `updated_at` (TIMESTAMPTZ) - Last update timestamp
@@ -138,6 +51,23 @@ Open [http://localhost:3000](http://localhost:3000) to see your bug tracker.
 - `screenshot_url` (TEXT) - URL to screenshot in Blob storage
 - `created_at` (TIMESTAMPTZ) - Creation timestamp
 - `updated_at` (TIMESTAMPTZ) - Last update timestamp
+
+## Authentication & Database Architecture
+
+The application uses **Supabase Auth** for user management, which separates authentication credentials from application data.
+
+### `auth.users` vs `public.profiles`
+- **`auth.users`**: Managed by Supabase. Stores secure credentials (email, encrypted password, metadata). Not directly accessible via the API.
+- **`public.profiles`**: A public table linked to `auth.users` via `id`. Stores application-specific user data:
+    - `role`: 'user' | 'support' | 'admin'
+    - `full_name`: Display name
+    - `is_active`: Account status
+    - `avatar_url`: Profile picture
+
+### Row Level Security (RLS)
+- **Profiles**: Publicly readable by authenticated users. Writable only by the user themselves (limited fields) or Admins.
+- **Comments**: Readable by all. Writable only by the author.
+- **Issues**: Readable by all (currently). Writable by authenticated users.
 
 ## Deployment
 
