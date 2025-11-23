@@ -45,6 +45,9 @@ export async function createIssue(input: {
 
     const supabase = await createServerClient()
 
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+
     const { data, error } = await supabase
       .from('issues')
       .insert([
@@ -55,6 +58,7 @@ export async function createIssue(input: {
           status: 'open',
           priority,
           screenshot_url: screenshotUrl,
+          created_by: user?.id || null,
         },
       ])
       .select()

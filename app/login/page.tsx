@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { login, signup } from '@/app/actions/auth-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,12 +13,28 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 
 export default function LoginPage() {
     const [isLogin, setIsLogin] = useState(true)
     const [loading, setLoading] = useState(false)
+    const [regions, setRegions] = useState<Array<{code: string, name: string}>>([])
     const { toast } = useToast()
+
+    useEffect(() => {
+        // Load regions from API
+        fetch('/api/regions')
+            .then(res => res.json())
+            .then(data => setRegions(data.data || []))
+            .catch(err => console.error('Failed to load regions:', err))
+    }, [])
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -51,15 +67,41 @@ export default function LoginPage() {
                 <form action={handleSubmit}>
                     <CardContent className="space-y-4">
                         {!isLogin && (
-                            <div className="space-y-2">
-                                <Label htmlFor="fullName">Full Name</Label>
-                                <Input
-                                    id="fullName"
-                                    name="fullName"
-                                    placeholder="John Doe"
-                                    required
-                                />
-                            </div>
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="fullName">Full Name</Label>
+                                    <Input
+                                        id="fullName"
+                                        name="fullName"
+                                        placeholder="John Doe"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="department">Department</Label>
+                                    <Input
+                                        id="department"
+                                        name="department"
+                                        placeholder="e.g., Engineering, Sales, HR"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="region">Region</Label>
+                                    <Select name="region" required>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select your region" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {regions.map((region) => (
+                                                <SelectItem key={region.code} value={region.code}>
+                                                    {region.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </>
                         )}
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>

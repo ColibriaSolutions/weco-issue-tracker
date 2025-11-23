@@ -10,6 +10,8 @@ const createUserSchema = z.object({
     password: z.string().min(6),
     fullName: z.string().min(2),
     role: z.enum(['user', 'support', 'admin']),
+    department: z.string().optional(),
+    region: z.string().optional(),
 })
 
 export async function listUsers() {
@@ -59,6 +61,8 @@ export async function createUser(formData: FormData) {
         password: formData.get('password'),
         fullName: formData.get('fullName'),
         role: formData.get('role'),
+        department: formData.get('department'),
+        region: formData.get('region'),
     }
 
     const validated = createUserSchema.safeParse(rawData)
@@ -67,7 +71,12 @@ export async function createUser(formData: FormData) {
         return { error: validated.error.flatten().fieldErrors }
     }
 
-    const { email, password, fullName, role } = validated.data
+    const { email, password, fullName, role, department, region } = validated.data
+
+    // Require department and region for non-admin users
+    if (role !== 'admin' && (!department || !region)) {
+        return { error: 'Department and region are required for non-admin users' }
+    }
 
     // 1. Create Auth User
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
@@ -87,12 +96,17 @@ export async function createUser(formData: FormData) {
 
     // 2. Update Profile with Role and Force Password Reset
     // The trigger creates the profile with default 'user' role. We need to update it.
+    const updateData: any = {
+        role: role as any,
+        must_change_password: true,
+    }
+    
+    if (department) updateData.department = department
+    if (region) updateData.region = region
+
     const { error: profileError } = await supabase
         .from('profiles')
-        .update({
-            role: role as any,
-            must_change_password: true,
-        })
+        .update(updateData)
         .eq('id', authUser.user.id)
 
     if (profileError) {
@@ -129,6 +143,30 @@ export async function toggleUserStatus(userId: string, isActive: boolean) {
         })
         if (unbanError) console.error('Error unbanning user:', unbanError)
     }
+
+    revalidatePath('/admin')
+    return { success: true }
+}
+
+export async function deleteUser(userId: string) {
+    const supabase = createAdminClient()
+
+    // Get current admin user to prevent self-deletion
+    const adminSupabase = await createServerClient()
+    const { data: { user: currentUser } } = await adminSupabase.auth.getUser()
+
+    if (currentUser?.id === userId) {
+        return { error: 'You cannot delete your own account' }
+    }
+
+    // 1. Delete from auth.users (this will cascade to profiles via trigger)
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+
+    if (authError) {
+        return { error: authError.message }
+    }
+
+    // Note: The profile will be deleted automatically due to CASCADE in the FK relationship
 
     revalidatePath('/admin')
     return { success: true }

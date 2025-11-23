@@ -46,9 +46,17 @@ Always call `revalidatePath()` after mutations:
 2. Store URL in DB (`screenshot_url`, `attachment_url`)
 3. Configured for 50MB limit in `next.config.mjs` → `experimental.serverActions.bodySizeLimit`
 
-### Admin User Provisioning
+### User Provisioning
+**Self-Signup:**
+- Users sign up via `/login` page (toggle to signup mode)
+- Must provide: full name, email, password, department, and region
+- Department is free text, region is dropdown from `regions` table
+- Profile auto-created by trigger, then updated with department/region
+
+**Admin-Created Users:**
 - Admins create users via `admin-actions.ts` → `createUser()` using service role client
 - Sets `email_confirm: true` to bypass email verification (no quota consumed)
+- Department and region required for non-admin users
 - New users get `must_change_password: true` flag in `profiles` table
 - First login forces password reset flow
 

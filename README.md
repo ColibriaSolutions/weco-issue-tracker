@@ -54,19 +54,26 @@ A simple, elegant bug tracking application for managing projects and logging iss
     BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
     ```
 
-4. Run database migrations in Supabase SQL Editor
-    - `scripts/create-profiles-table.sql`
-    - `scripts/create-comments-table.sql`
-    - `scripts/add-comment-attachments.sql`
-    - `scripts/add-project-ownership.sql`
-    - `scripts/create-api-keys-table.sql`
+4. Run database migrations in Supabase SQL Editor (in order)
+   - `scripts/create-profiles-table.sql`
+   - `scripts/create-comments-table.sql`
+   - `scripts/add-comment-attachments.sql`
+   - `scripts/add-project-ownership.sql`
+   - `scripts/create-api-keys-table.sql`
+   - `scripts/add-user-department-region.sql`
+   - `scripts/add-issue-creator.sql`
 
-5. Start the development server
-    ```bash
-    pnpm run dev
-    ```
+5. Regenerate TypeScript types
+   ```bash
+   pnpm run types
+   ```
 
-6. Open [http://localhost:3000](http://localhost:3000)
+6. Start the development server
+   ```bash
+   pnpm run dev
+   ```
+
+7. Open [http://localhost:3000](http://localhost:3000)
 
 ### API File Upload Test Scripts
 

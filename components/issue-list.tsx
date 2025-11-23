@@ -11,6 +11,11 @@ interface Issue {
   priority: 'low' | 'medium' | 'high' | 'critical'
   screenshot_url: string | null
   created_at: string
+  creator?: {
+    full_name: string
+    department?: string
+    region?: string
+  }
 }
 
 const statusLabels = {
@@ -31,7 +36,14 @@ export async function IssueList({ projectId }: { projectId: string }) {
 
   const { data: issues, error } = await supabase
     .from('issues')
-    .select('*')
+    .select(`
+      *,
+      creator:created_by (
+        full_name,
+        department,
+        region
+      )
+    `)
     .eq('project_id', projectId)
     .order('created_at', { ascending: false })
 

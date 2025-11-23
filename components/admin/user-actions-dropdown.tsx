@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { toggleUserStatus, resetUserPassword } from '@/app/actions/admin-actions'
+import { toggleUserStatus, resetUserPassword, deleteUser } from '@/app/actions/admin-actions'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -19,6 +19,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MoreHorizontal } from 'lucide-react'
@@ -26,7 +36,9 @@ import { useToast } from '@/hooks/use-toast'
 
 export function UserActionsDropdown({ user }: { user: any }) {
     const [resetOpen, setResetOpen] = useState(false)
+    const [deleteOpen, setDeleteOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [deleting, setDeleting] = useState(false)
     const { toast } = useToast()
 
     async function handleToggleStatus() {
@@ -66,6 +78,26 @@ export function UserActionsDropdown({ user }: { user: any }) {
         }
     }
 
+    async function handleDeleteUser() {
+        setDeleting(true)
+        const result = await deleteUser(user.id)
+        setDeleting(false)
+
+        if (result?.error) {
+            toast({
+                title: 'Error',
+                description: result.error,
+                variant: 'destructive',
+            })
+        } else {
+            toast({
+                title: 'Success',
+                description: 'User deleted successfully',
+            })
+            setDeleteOpen(false)
+        }
+    }
+
     return (
         <>
             <DropdownMenu>
@@ -89,6 +121,13 @@ export function UserActionsDropdown({ user }: { user: any }) {
                         className={user.is_active ? 'text-destructive' : 'text-green-600'}
                     >
                         {user.is_active ? 'Deactivate User' : 'Activate User'}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        onClick={() => setDeleteOpen(true)}
+                        className="text-destructive"
+                    >
+                        Delete User
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -125,6 +164,36 @@ export function UserActionsDropdown({ user }: { user: any }) {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete User</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div>
+                                <p>Are you sure you want to permanently delete <strong>{user.full_name || user.email}</strong>?</p>
+                                <p className="mt-4">This will permanently delete:</p>
+                                <ul className="list-disc list-inside mt-2">
+                                    <li>The user account</li>
+                                    <li>All authentication credentials</li>
+                                    <li>All associated data</li>
+                                </ul>
+                                <p className="mt-4"><strong>This action cannot be undone.</strong></p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteUser}
+                            disabled={deleting}
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                        >
+                            {deleting ? 'Deleting...' : 'Delete User'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }

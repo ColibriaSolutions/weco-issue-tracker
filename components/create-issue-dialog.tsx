@@ -67,9 +67,16 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
       })
 
       if (result.error) {
+        // Handle validation errors (object) or general errors (string)
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : Object.entries(result.error)
+              .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+              .join('\n')
+        
         toast({
-          title: 'Error',
-          description: result.error,
+          title: 'Validation Error',
+          description: errorMessage,
           variant: 'destructive',
         })
       } else {
@@ -118,17 +125,26 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
                 name="title"
                 placeholder="Brief description of the issue"
                 required
+                minLength={3}
+                maxLength={100}
               />
+              <p className="text-xs text-muted-foreground">
+                3-100 characters
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 name="description"
-                placeholder="Detailed description of what happened..."
+                placeholder="Detailed description of what happened... (minimum 10 characters)"
                 rows={4}
                 required
+                minLength={10}
               />
+              <p className="text-xs text-muted-foreground">
+                Minimum 10 characters required
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="priority">Priority</Label>

@@ -33,6 +33,11 @@ interface Issue {
   priority: 'low' | 'medium' | 'high' | 'critical'
   screenshot_url: string | null
   created_at: string
+  creator?: {
+    full_name: string
+    department?: string
+    region?: string
+  }
 }
 
 const priorityColors = {
@@ -87,6 +92,13 @@ export function IssueDetailsDialog({
               <DialogTitle className="text-2xl">{issue.title}</DialogTitle>
               <DialogDescription className="mt-2">
                 Created {new Date(issue.created_at).toLocaleString()}
+                {issue.creator && (
+                  <>
+                    {' • By: '}{issue.creator.full_name}
+                    {issue.creator.department && ` • ${issue.creator.department}`}
+                    {issue.creator.region && ` • ${issue.creator.region}`}
+                  </>
+                )}
               </DialogDescription>
             </div>
             <Badge className={`${priorityColors[issue.priority]} text-white`}>
