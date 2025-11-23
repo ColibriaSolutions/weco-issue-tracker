@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Plus, Copy, Check, AlertTriangle } from 'lucide-react'
+import { Plus, Copy, Check, AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { createApiKey } from '@/app/actions/api-key-actions'
 
@@ -24,6 +24,7 @@ export function CreateApiKeyDialog() {
     const [creating, setCreating] = useState(false)
     const [newKey, setNewKey] = useState<string | null>(null)
     const [copied, setCopied] = useState(false)
+    const [showKey, setShowKey] = useState(false)
     const { toast } = useToast()
 
     async function handleCreate() {
@@ -73,6 +74,7 @@ export function CreateApiKeyDialog() {
         setRateLimit('10000')
         setNewKey(null)
         setCopied(false)
+        setShowKey(false)
     }
 
     return (
@@ -144,12 +146,29 @@ export function CreateApiKeyDialog() {
                             <div className="space-y-2">
                                 <Label>Your API Key</Label>
                                 <div className="flex gap-2">
-                                    <Input
-                                        value={newKey}
-                                        readOnly
-                                        className="font-mono text-sm"
-                                    />
+                                    <div className="relative flex-1">
+                                        <Input
+                                            value={newKey || ''}
+                                            readOnly
+                                            type={showKey ? 'text' : 'password'}
+                                            className="font-mono text-sm pr-10"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute right-0 top-0 h-full hover:bg-transparent"
+                                            onClick={() => setShowKey(!showKey)}
+                                        >
+                                            {showKey ? (
+                                                <EyeOff className="h-4 w-4" />
+                                            ) : (
+                                                <Eye className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                    </div>
                                     <Button
+                                        type="button"
                                         variant="outline"
                                         size="icon"
                                         onClick={handleCopy}

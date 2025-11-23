@@ -36,6 +36,11 @@ export async function proxy(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Skip authentication for API routes (they use API key auth)
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+        return response
+    }
+
     if (
         !user &&
         !request.nextUrl.pathname.startsWith('/login') &&

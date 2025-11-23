@@ -1,5 +1,5 @@
-import { createServerClient } from '@/lib/supabase/server'
 import { extractApiKey, getKeyPrefix, validateApiKey } from '@/lib/api-keys'
+import { createServiceRoleClient, createServerClient } from '@/lib/supabase/server'
 
 /**
  * Validate API key from request headers
@@ -12,75 +12,52 @@ export async function validateApiKeyRequest(request: Request): Promise<{
     error?: string
 }> {
     try {
-        // Extract API key from Authorization header
+        // Extract API key
         const authHeader = request.headers.get('Authorization')
         const apiKey = extractApiKey(authHeader)
-
         if (!apiKey) {
-            return {
-                valid: false,
-                error: 'Missing or invalid Authorization header. Expected: Bearer weco_live_...'
-            }
+            return { valid: false, error: 'Missing or invalid Authorization header' }
         }
 
-        // Get key prefix for database lookup
+        // Look up key in DB using service role (bypass RLS)
         const prefix = getKeyPrefix(apiKey)
-
-        // Look up key in database
-        const supabase = await createServerClient()
+        const supabase = createServiceRoleClient()
         const { data: keyData, error: dbError } = await supabase
             .from('api_keys')
             .select('*')
             .eq('key_prefix', prefix)
             .eq('is_active', true)
             .single()
-
         if (dbError || !keyData) {
-            return {
-                valid: false,
-                error: 'Invalid API key'
-            }
+            return { valid: false, error: 'Invalid API key' }
         }
 
-        // Validate key hash
+        // Rate limit check
+        if (keyData.request_count >= keyData.rate_limit) {
+            return { valid: false, error: `Rate limit exceeded. Limit: ${keyData.rate_limit} requests/month` }
+        }
+
+        // Validate hash
         const isValid = validateApiKey(apiKey, keyData.key_hash)
         if (!isValid) {
-            return {
-                valid: false,
-                error: 'Invalid API key'
-            }
+            return { valid: false, error: 'Invalid API key' }
         }
 
-        // Check rate limit
-        if (keyData.request_count >= keyData.rate_limit) {
-            return {
-                valid: false,
-                error: `Rate limit exceeded. Limit: ${keyData.rate_limit} requests/month`
-            }
-        }
-
-        // Update usage statistics (fire and forget)
+        // Update usage stats (fire‑and‑forget)
         supabase
             .from('api_keys')
             .update({
                 last_used_at: new Date().toISOString(),
-                request_count: keyData.request_count + 1
+                request_count: keyData.request_count + 1,
             })
             .eq('id', keyData.id)
             .then(() => { })
             .catch(err => console.error('Error updating API key stats:', err))
 
-        return {
-            valid: true,
-            keyId: keyData.id,
-            userId: keyData.created_by
-        }
+        return { valid: true, keyId: keyData.id, userId: keyData.created_by }
     } catch (error) {
         console.error('Error validating API key:', error)
-        return {
-            valid: false,
-            error: 'Internal server error'
-        }
+        return { valid: false, error: 'Internal server error' }
     }
 }
 
@@ -113,7 +90,7 @@ export async function checkRateLimit(keyId: string): Promise<{
     limit: number
 }> {
     try {
-        const supabase = await createServerClient()
+        const supabase = createServiceRoleClient()
         const { data } = await supabase
             .from('api_keys')
             .select('request_count, rate_limit')
