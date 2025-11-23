@@ -9,6 +9,12 @@ import './swagger-ui.css'
 
 export default function ApiDocsPage() {
     const [spec, setSpec] = useState<any>(null)
+    const [baseUrl, setBaseUrl] = useState<string>('')
+
+    useEffect(() => {
+        // Set base URL on client side only
+        setBaseUrl(window.location.origin)
+    }, [])
 
     useEffect(() => {
         // Load OpenAPI spec
@@ -108,8 +114,7 @@ export default function ApiDocsPage() {
                                 Try fetching all projects:
                             </p>
                             <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                                <code>{`curl -H "Authorization: Bearer YOUR_API_KEY" \\
-  ${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/api/projects`}</code>
+                                <code>{baseUrl ? `curl -H "Authorization: Bearer YOUR_API_KEY" \\\n  ${baseUrl}/api/projects` : 'Loading...'}</code>
                             </pre>
                         </div>
                     </CardContent>

@@ -114,3 +114,58 @@ export async function deleteProject(projectId: string) {
     return { error: 'Failed to delete project' }
   }
 }
+
+export async function deleteMultipleProjects(projectIds: string[]) {
+  try {
+    const supabase = await createServerClient()
+
+    // Check if user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return { error: 'You must be logged in' }
+    }
+
+    // Get user's role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return { error: 'Failed to verify permissions' }
+    }
+
+    const isAdmin = profile.role === 'admin'
+
+    // If not admin, verify ownership of all projects
+    if (!isAdmin) {
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('id, owner_id')
+        .in('id', projectIds)
+
+      const allOwned = projects?.every(p => p.owner_id === user.id)
+      if (!allOwned) {
+        return { error: 'You can only delete projects you own' }
+      }
+    }
+
+    // Delete all projects
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .in('id', projectIds)
+
+    if (error) {
+      console.error('[v0] Error deleting projects:', error)
+      return { error: error.message }
+    }
+
+    revalidatePath('/')
+    return { success: true, count: projectIds.length }
+  } catch (error) {
+    console.error('[v0] Error deleting projects:', error)
+    return { error: 'Failed to delete projects' }
+  }
+}
