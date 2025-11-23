@@ -30,42 +30,57 @@ A simple, elegant bug tracking application for managing projects and logging iss
 - Supabase account
 - Vercel account (for Blob storage)
 
+
 ### Installation
 
 1. Clone the repository
-   ```bash
-   git clone <your-repo-url>
-   cd weco-issue-tracker
-   ```
+    ```bash
+    git clone <your-repo-url>
+    cd weco-issue-tracker
+    ```
 
 2. Install dependencies
-   ```bash
-   pnpm install
-   ```
+    ```bash
+    pnpm install
+    ```
 
 3. Set up environment variables
    
-   Create a `.env.local` file:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
-   ```
+    Create a `.env.local` file:
+    ```env
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+    BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+    ```
 
 4. Run database migrations in Supabase SQL Editor
-   - `scripts/create-profiles-table.sql`
-   - `scripts/create-comments-table.sql`
-   - `scripts/add-comment-attachments.sql`
-   - `scripts/add-project-ownership.sql`
-   - `scripts/create-api-keys-table.sql`
+    - `scripts/create-profiles-table.sql`
+    - `scripts/create-comments-table.sql`
+    - `scripts/add-comment-attachments.sql`
+    - `scripts/add-project-ownership.sql`
+    - `scripts/create-api-keys-table.sql`
 
 5. Start the development server
-   ```bash
-   pnpm run dev
-   ```
+    ```bash
+    pnpm run dev
+    ```
 
 6. Open [http://localhost:3000](http://localhost:3000)
+
+### API File Upload Test Scripts
+
+**Linux/macOS:**
+```bash
+chmod +x ./test-file-upload.sh
+API_KEY=your_api_key ./test-file-upload.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:API_KEY="your_api_key"
+./test-file-upload.ps1
+```
 
 ### Package Manager
 
@@ -81,46 +96,57 @@ pnpm add <package>    # Add new package
 ```
 
 
+
 ## Architecture
 
-### System Overview
+### Conceptual Overview
 
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        Browser[Browser]
-        UI[Next.js UI Components]
-    end
-    
-    subgraph "Application Layer"
-        SSR[Server Components]
-        SA[Server Actions]
-        MW[Middleware]
-    end
-    
-    subgraph "Data Layer"
-        SB[(Supabase PostgreSQL)]
-        VB[Vercel Blob Storage]
-    end
-    
-    subgraph "Authentication"
-        AUTH[Supabase Auth]
-    end
-    
-    Browser --> UI
-    UI --> SSR
-    UI --> SA
-    MW --> AUTH
-    SA --> SB
-    SA --> VB
-    SSR --> SB
-    AUTH --> SB
-    
-    style Browser fill:#e1f5ff
-    style SB fill:#d4edda
-    style VB fill:#fff3cd
-    style AUTH fill:#f8d7da
-```
+The system is built on a **Next.js 16 App Router** foundation, using a dual data layer and strict separation of concerns:
+
+- **UI Layer:** Next.js Server Components and Client Components (in `components/`), with Server Actions for all UI-triggered mutations.
+- **API Layer:** RESTful endpoints under `app/api/` for programmatic access, using API key authentication and rate limiting.
+- **Data Layer:** Supabase PostgreSQL (with Row Level Security) and Vercel Blob for file storage.
+- **Authentication:** Supabase Auth for user/session management, with a custom API key system for automation and integrations.
+
+#### Service Roles & Supabase Clients
+
+- **Session Client (`createServerClient`)**: Used in Server Actions and UI, respects RLS and user context. Never exposes admin privileges.
+- **Service Role Client (`createServiceRoleClient`)**: Used only in admin actions and API key validation. Bypasses RLS for privileged operations (e.g., user provisioning, API key management). Never use in user-facing Server Actions.
+- **API Key Context:** API routes use the service role client to validate and update API key usage, but all data access is still performed with the correct user context for RLS enforcement.
+
+#### Row Level Security (RLS)
+
+- **RLS Policies:** All tables have RLS enabled. Policies are defined in `scripts/*.sql` and enforce access based on `auth.uid()` (for session) or API key context.
+- **Project Ownership:** The `projects` table has an `owner_id` field, and the `project_members` junction table controls collaboration. RLS ensures only owners/admins can manage members.
+- **Admin Bypass:** Service role client is required for admin operations (e.g., creating users, managing API keys), but should never be used in regular UI flows.
+
+#### Server Actions vs API Routes
+
+- **Server Actions (`app/actions/*.ts`):** Used for all UI-triggered mutations. Always validate input with Zod schemas (`lib/validations.ts`). Use `createServerClient()` for RLS-aware queries. Return `{ error }` or `{ data }` objects—never throw.
+- **API Routes (`app/api/**/route.ts`):** Used for REST API access. Authenticate with API keys (see `lib/api/auth.ts`). Use `requireApiKey()` for validation and rate limiting. All API routes skip session middleware (see `proxy.ts`).
+
+- **Cache Revalidation:** After any mutation, always call `revalidatePath()` for the affected path(s) to ensure UI consistency.
+
+#### File Uploads
+
+- Use the Vercel Blob API for all file uploads (see `uploadScreenshot()` in `app/actions/issue-actions.ts`). Store only the resulting URL in the database.
+- File uploads are limited to 50MB (see `next.config.mjs`).
+
+#### Error Handling
+
+- All Server Actions and API routes return structured error/data objects. Never throw errors to the client.
+
+#### Example Data Flow
+
+1. User triggers a mutation (e.g., create issue) via UI → Server Action validates input, performs RLS-aware DB write, calls `revalidatePath()`.
+2. API client calls REST endpoint with API key → API route validates key, checks rate limit, performs operation with correct context.
+
+#### Security Notes
+
+- Never use the service role client in Server Actions or API routes except for admin-only operations.
+- Always validate input on the server, even if client-side validation exists.
+
+---
 
 ### Database Schema
 
