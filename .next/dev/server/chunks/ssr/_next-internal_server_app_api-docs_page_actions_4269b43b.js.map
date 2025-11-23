@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///G:/SourceCode/WECORelated/weco-issue-tracker/.next-internal/server/app/api-docs/page/actions.js%20%28server%20actions%20loader%29"],"sourcesContent":["export {logout as '00478dc19c25d68685b5311d665bfb9fe6b61edb59'} from 'ACTIONS_MODULE0'\nexport {signup as '407b8a3154c7a0c34448a3ca2e7ebad839bad6ded1'} from 'ACTIONS_MODULE0'\nexport {login as '40ce5fd73ec76a24efd689a60e920e004537f4ca8c'} from 'ACTIONS_MODULE0'\n"],"names":[],"mappings":";AAAA"}}]
-}
