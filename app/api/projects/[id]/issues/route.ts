@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { requireApiKey } from '@/lib/api/auth'
+import { put } from '@vercel/blob'
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
 export async function GET(
     request: NextRequest,
@@ -59,11 +62,62 @@ export async function POST(
     if (authError) return authError
 
     const { id } = await params
-    const body = await request.json()
-    const supabase = await createServerClient()
+    const contentType = request.headers.get('content-type') || ''
+
+    let title, description, status, priority, screenshotUrl = null
+
+    // Handle both JSON and multipart/form-data
+    if (contentType.includes('multipart/form-data')) {
+        const formData = await request.formData()
+        title = formData.get('title') as string
+        description = formData.get('description') as string | null
+        status = formData.get('status') as string | null
+        priority = formData.get('priority') as string | null
+
+        // Handle screenshot file upload
+        const screenshot = formData.get('screenshot') as File | null
+        if (screenshot && screenshot.size > 0) {
+            // Validate file size
+            if (screenshot.size > MAX_FILE_SIZE) {
+                return NextResponse.json(
+                    { error: 'Screenshot file size must be less than 50MB' },
+                    { status: 400 }
+                )
+            }
+
+            // Validate file type
+            if (!screenshot.type.startsWith('image/')) {
+                return NextResponse.json(
+                    { error: 'Screenshot must be an image file' },
+                    { status: 400 }
+                )
+            }
+
+            try {
+                // Upload to Vercel Blob
+                const blob = await put(`screenshots/${crypto.randomUUID()}-${screenshot.name}`, screenshot, {
+                    access: 'public',
+                })
+                screenshotUrl = blob.url
+            } catch (uploadError) {
+                console.error('Screenshot upload error:', uploadError)
+                return NextResponse.json(
+                    { error: 'Failed to upload screenshot' },
+                    { status: 500 }
+                )
+            }
+        }
+    } else {
+        // Handle JSON body (backward compatibility)
+        const body = await request.json()
+        title = body.title
+        description = body.description
+        status = body.status
+        priority = body.priority
+        screenshotUrl = body.screenshot_url || null
+    }
 
     // Validate required fields
-    const { title, description, status, priority, screenshot_url } = body
     if (!title) {
         return NextResponse.json(
             { error: 'Title is required' },
@@ -89,6 +143,8 @@ export async function POST(
         )
     }
 
+    const supabase = await createServerClient()
+
     // Create issue
     const { data: issue, error } = await supabase
         .from('issues')
@@ -98,7 +154,7 @@ export async function POST(
             description: description || null,
             status: status || 'open',
             priority: priority || 'medium',
-            screenshot_url: screenshot_url || null
+            screenshot_url: screenshotUrl
         })
         .select()
         .single()

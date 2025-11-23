@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import { requireApiKey } from '@/lib/api/auth'
+import { put } from '@vercel/blob'
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
 export async function GET(
     request: NextRequest,
@@ -16,7 +19,7 @@ export async function GET(
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
     const offset = (page - 1) * limit
 
-    const supabase = await createServerClient()
+    const supabase = createServiceRoleClient()
 
     // Get total count
     const { count } = await supabase
@@ -32,7 +35,6 @@ export async function GET(
       profiles:user_id (
         id,
         full_name,
-        email,
         avatar_url
       )
     `)
@@ -67,11 +69,63 @@ export async function POST(
     if (authError) return authError
 
     const { issueId } = await params
-    const body = await request.json()
-    const supabase = await createServerClient()
+    const contentType = request.headers.get('content-type') || ''
+
+    let content, userId, attachmentUrl = null, attachmentType = null
+
+    // Handle both JSON and multipart/form-data
+    if (contentType.includes('multipart/form-data')) {
+        const formData = await request.formData()
+        content = formData.get('content') as string
+        userId = formData.get('user_id') as string
+
+        // Handle attachment file upload
+        const attachment = formData.get('attachment') as File | null
+        if (attachment && attachment.size > 0) {
+            // Validate file size
+            if (attachment.size > MAX_FILE_SIZE) {
+                return NextResponse.json(
+                    { error: 'Attachment file size must be less than 50MB' },
+                    { status: 400 }
+                )
+            }
+
+            // Validate file type
+            const isImage = attachment.type.startsWith('image/')
+            const isVideo = attachment.type.startsWith('video/')
+
+            if (!isImage && !isVideo) {
+                return NextResponse.json(
+                    { error: 'Attachment must be an image or video file' },
+                    { status: 400 }
+                )
+            }
+
+            try {
+                // Upload to Vercel Blob
+                const blob = await put(`comments/${crypto.randomUUID()}-${attachment.name}`, attachment, {
+                    access: 'public',
+                })
+                attachmentUrl = blob.url
+                attachmentType = isImage ? 'image' : 'video'
+            } catch (uploadError) {
+                console.error('Attachment upload error:', uploadError)
+                return NextResponse.json(
+                    { error: 'Failed to upload attachment' },
+                    { status: 500 }
+                )
+            }
+        }
+    } else {
+        // Handle JSON body (backward compatibility)
+        const body = await request.json()
+        content = body.content
+        userId = body.user_id
+        attachmentUrl = body.attachment_url || null
+        attachmentType = body.attachment_type || null
+    }
 
     // Validate required fields
-    const { content, attachment_url, attachment_type, user_id } = body
     if (!content) {
         return NextResponse.json(
             { error: 'Content is required' },
@@ -79,29 +133,30 @@ export async function POST(
         )
     }
 
-    if (!user_id) {
+    if (!userId) {
         return NextResponse.json(
             { error: 'user_id is required' },
             { status: 400 }
         )
     }
 
+    const supabase = createServiceRoleClient()
+
     // Create comment
     const { data: comment, error } = await supabase
         .from('comments')
         .insert({
             issue_id: issueId,
-            user_id,
+            user_id: userId,
             content,
-            attachment_url: attachment_url || null,
-            attachment_type: attachment_type || null
+            attachment_url: attachmentUrl,
+            attachment_type: attachmentType
         })
         .select(`
       *,
       profiles:user_id (
         id,
         full_name,
-        email,
         avatar_url
       )
     `)

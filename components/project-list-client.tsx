@@ -103,7 +103,7 @@ export function ProjectListClient({
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-sm text-muted-foreground">
-                                            Created {new Date(project.created_at).toLocaleDateString()}
+                                            Created {new Date(project.created_at).toISOString().split('T')[0]}
                                         </p>
                                     </CardContent>
                                 </Card>
