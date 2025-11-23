@@ -1,0 +1,31 @@
+/* Swagger UI Custom Styles */
+.swagger-ui-container {
+    padding: 1.5rem;
+}
+
+/* Match app theme */
+.swagger-ui .topbar {
+    display: none;
+}
+
+.swagger-ui .info {
+    margin: 0 0 2rem 0;
+}
+
+.swagger-ui .scheme-container {
+    background: hsl(var(--muted));
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .swagger-ui {
+        filter: invert(0.9) hue-rotate(180deg);
+    }
+
+    .swagger-ui .swagger-ui img {
+        filter: invert(1) hue-rotate(180deg);
+    }
+}

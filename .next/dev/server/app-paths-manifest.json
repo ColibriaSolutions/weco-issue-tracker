@@ -1,5 +1,7 @@
 {
-  "/login/page": "app/login/page.js",
-  "/page": "app/page.js",
-  "/projects/[id]/page": "app/projects/[id]/page.js"
+  "/admin/api-keys/page": "app/admin/api-keys/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/api-docs/page": "app/api-docs/page.js",
+  "/api/openapi.json/route": "app/api/openapi.json/route.js",
+  "/page": "app/page.js"
 }

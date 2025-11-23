@@ -73,7 +73,12 @@ export default async function AdminDashboard() {
                         Manage users, roles, and system access.
                     </p>
                 </div>
-                <CreateUserDialog />
+                <div className="flex gap-2">
+                    <Button variant="outline" asChild>
+                        <a href="/admin/api-keys">API Keys</a>
+                    </Button>
+                    <CreateUserDialog />
+                </div>
             </div>
 
             <Card>

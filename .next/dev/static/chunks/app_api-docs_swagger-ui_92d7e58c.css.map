@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["file:///G:/SourceCode/WECORelated/weco-issue-tracker/app/api-docs/swagger-ui.css"],"sourcesContent":["/* Swagger UI Custom Styles */\r\n.swagger-ui-container {\r\n    padding: 1.5rem;\r\n}\r\n\r\n/* Match app theme */\r\n.swagger-ui .topbar {\r\n    display: none;\r\n}\r\n\r\n.swagger-ui .info {\r\n    margin: 0 0 2rem 0;\r\n}\r\n\r\n.swagger-ui .scheme-container {\r\n    background: hsl(var(--muted));\r\n    padding: 1rem;\r\n    border-radius: 0.5rem;\r\n    margin-bottom: 1rem;\r\n}\r\n\r\n/* Dark mode support */\r\n@media (prefers-color-scheme: dark) {\r\n    .swagger-ui {\r\n        filter: invert(0.9) hue-rotate(180deg);\r\n    }\r\n\r\n    .swagger-ui .swagger-ui img {\r\n        filter: invert(1) hue-rotate(180deg);\r\n    }\r\n}"],"names":[],"mappings":"AACA;;;;AAKA;;;;AAIA;;;;AAIA;;;;;;;AAQA;EACI;;;;EAIA"}}]
+}

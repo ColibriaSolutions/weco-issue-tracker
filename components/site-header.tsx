@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createServerClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { logout } from '@/app/actions/auth-actions'
@@ -9,12 +10,43 @@ export async function SiteHeader() {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Get user profile to check role
+    let profile = null
+    if (user) {
+        const { data } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+        profile = data
+    }
+
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-14 items-center justify-between">
-                <Link href="/" className="flex items-center gap-2 font-semibold">
-                    <span className="text-primary">Colibria</span> Bug Tracker
-                </Link>
+            <div className="container flex h-16 items-center justify-between">
+                <div className="flex items-center gap-6">
+                    <Link href="/" className="flex items-center gap-2">
+                        <Image
+                            src="/ColibriaFinalizedLogo.jpg"
+                            alt="Colibria Logo"
+                            width={32}
+                            height={32}
+                            className="rounded"
+                        />
+                        <span className="text-xl font-bold">Colibria</span>
+                        <span className="text-xl font-light">Bug Tracker</span>
+                    </Link>
+                    <nav className="flex items-center gap-4">
+                        <Link href="/" className="text-sm font-medium hover:underline">
+                            Projects
+                        </Link>
+                        {profile?.role === 'admin' && (
+                            <Link href="/admin" className="text-sm font-medium hover:underline">
+                                Admin Panel
+                            </Link>
+                        )}
+                    </nav>
+                </div>
                 <div className="flex items-center gap-4">
                     {user ? (
                         <div className="flex items-center gap-4">

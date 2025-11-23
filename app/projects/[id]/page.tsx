@@ -1,9 +1,9 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import { IssueList } from '@/components/issue-list'
 import { CreateIssueDialog } from '@/components/create-issue-dialog'
+import { ManageMembersDialog } from '@/components/project/manage-members-dialog'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -25,29 +25,33 @@ export default async function ProjectPage({
     notFound()
   }
 
+  // Check if current user can manage members (owner or admin)
+  const { data: { user } } = await supabase.auth.getUser()
+  let canManageMembers = false
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = profile?.role === 'admin'
+    const isOwner = project.owner_id === user.id
+
+    canManageMembers = isAdmin || isOwner
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Image
-                  src="/colibria-logo.png"
-                  alt="Colibria"
-                  width={200}
-                  height={60}
-                  priority
-                  className="h-10 w-auto cursor-pointer"
-                />
-              </Link>
-              <div className="h-8 w-px bg-border" />
-              <div>
-                <h1 className="text-2xl font-bold">{project.name}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {project.description}
-                </p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold">{project.name}</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {project.description}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Link href="/">
@@ -56,6 +60,12 @@ export default async function ProjectPage({
                   Back to Projects
                 </Button>
               </Link>
+              {canManageMembers && (
+                <ManageMembersDialog
+                  projectId={project.id}
+                  projectName={project.name}
+                />
+              )}
               <CreateIssueDialog projectId={id} />
             </div>
           </div>

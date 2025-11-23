@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import { ProjectList } from '@/components/project-list'
 import { CreateProjectDialog } from '@/components/create-project-dialog'
 
@@ -8,15 +7,11 @@ export default function Home() {
       <header className="border-b">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Image
-                src="/colibria-logo.png"
-                alt="Colibria"
-                width={200}
-                height={60}
-                priority
-                className="h-10 w-auto"
-              />
+            <div>
+              <h1 className="text-3xl font-bold">Projects</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage your projects and track issues
+              </p>
             </div>
             <CreateProjectDialog />
           </div>
@@ -24,12 +19,6 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Projects</h1>
-          <p className="text-muted-foreground">
-            Manage your projects and track issues
-          </p>
-        </div>
         <ProjectList />
       </main>
     </div>
