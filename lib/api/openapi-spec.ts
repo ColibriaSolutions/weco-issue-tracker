@@ -241,6 +241,684 @@ Each API key has a monthly request limit (default: 10,000 requests/month). The c
                         }
                     }
                 }
+            },
+            '/api/projects/{id}': {
+                get: {
+                    summary: 'Get a single project',
+                    description: 'Retrieve details of a specific project by ID',
+                    tags: ['Projects'],
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            description: 'Project ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Successful response',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/Project' }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '404': {
+                            description: 'Project not found',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/Error' }
+                                }
+                            }
+                        }
+                    }
+                },
+                patch: {
+                    summary: 'Update a project',
+                    description: 'Update an existing project',
+                    tags: ['Projects'],
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            description: 'Project ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        name: { type: 'string' },
+                                        description: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        '200': {
+                            description: 'Project updated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/Project' }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '404': {
+                            description: 'Project not found',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/Error' }
+                                }
+                            }
+                        }
+                    }
+                },
+                delete: {
+                    summary: 'Delete a project',
+                    description: 'Delete a project by ID',
+                    tags: ['Projects'],
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            description: 'Project ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Project deleted successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            message: { type: 'string' }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '404': {
+                            description: 'Project not found',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/Error' }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/projects/{id}/issues': {
+                get: {
+                    summary: 'List project issues',
+                    description: 'Retrieve a paginated list of issues for a specific project',
+                    tags: ['Issues'],
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            description: 'Project ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        },
+                        {
+                            name: 'page',
+                            in: 'query',
+                            description: 'Page number',
+                            schema: { type: 'integer', minimum: 1, default: 1 }
+                        },
+                        {
+                            name: 'limit',
+                            in: 'query',
+                            description: 'Items per page',
+                            schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Successful response',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: {
+                                                type: 'array',
+                                                items: { $ref: '#/components/schemas/Issue' }
+                                            },
+                                            pagination: { $ref: '#/components/schemas/Pagination' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                post: {
+                    summary: 'Create an issue',
+                    description: 'Create a new issue for a project',
+                    tags: ['Issues'],
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            description: 'Project ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        title: { type: 'string' },
+                                        description: { type: 'string' },
+                                        status: { type: 'string', enum: ['open', 'in_progress', 'closed'], default: 'open' },
+                                        priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], default: 'medium' },
+                                        screenshot_url: { type: 'string', nullable: true }
+                                    },
+                                    required: ['title']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        '201': {
+                            description: 'Issue created successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/Issue' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/issues/{issueId}': {
+                get: {
+                    summary: 'Get a single issue',
+                    description: 'Retrieve details of a specific issue',
+                    tags: ['Issues'],
+                    parameters: [
+                        {
+                            name: 'issueId',
+                            in: 'path',
+                            required: true,
+                            description: 'Issue ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Successful response',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/Issue' }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '404': {
+                            description: 'Issue not found',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/Error' }
+                                }
+                            }
+                        }
+                    }
+                },
+                patch: {
+                    summary: 'Update an issue',
+                    description: 'Update an existing issue',
+                    tags: ['Issues'],
+                    parameters: [
+                        {
+                            name: 'issueId',
+                            in: 'path',
+                            required: true,
+                            description: 'Issue ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        title: { type: 'string' },
+                                        description: { type: 'string' },
+                                        status: { type: 'string', enum: ['open', 'in_progress', 'closed'] },
+                                        priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                                        screenshot_url: { type: 'string', nullable: true }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        '200': {
+                            description: 'Issue updated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/Issue' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                delete: {
+                    summary: 'Delete an issue',
+                    description: 'Delete an issue by ID',
+                    tags: ['Issues'],
+                    parameters: [
+                        {
+                            name: 'issueId',
+                            in: 'path',
+                            required: true,
+                            description: 'Issue ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Issue deleted successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            message: { type: 'string' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/issues/{issueId}/comments': {
+                get: {
+                    summary: 'List issue comments',
+                    description: 'Retrieve a paginated list of comments for a specific issue',
+                    tags: ['Comments'],
+                    parameters: [
+                        {
+                            name: 'issueId',
+                            in: 'path',
+                            required: true,
+                            description: 'Issue ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        },
+                        {
+                            name: 'page',
+                            in: 'query',
+                            description: 'Page number',
+                            schema: { type: 'integer', minimum: 1, default: 1 }
+                        },
+                        {
+                            name: 'limit',
+                            in: 'query',
+                            description: 'Items per page',
+                            schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Successful response',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: {
+                                                type: 'array',
+                                                items: { $ref: '#/components/schemas/Comment' }
+                                            },
+                                            pagination: { $ref: '#/components/schemas/Pagination' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                post: {
+                    summary: 'Create a comment',
+                    description: 'Create a new comment for an issue',
+                    tags: ['Comments'],
+                    parameters: [
+                        {
+                            name: 'issueId',
+                            in: 'path',
+                            required: true,
+                            description: 'Issue ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        content: { type: 'string' },
+                                        user_id: { type: 'string', format: 'uuid' },
+                                        attachment_url: { type: 'string', nullable: true },
+                                        attachment_type: { type: 'string', nullable: true }
+                                    },
+                                    required: ['content', 'user_id']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        '201': {
+                            description: 'Comment created successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/Comment' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/comments/{commentId}': {
+                get: {
+                    summary: 'Get a single comment',
+                    description: 'Retrieve details of a specific comment',
+                    tags: ['Comments'],
+                    parameters: [
+                        {
+                            name: 'commentId',
+                            in: 'path',
+                            required: true,
+                            description: 'Comment ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Successful response',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/Comment' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                delete: {
+                    summary: 'Delete a comment',
+                    description: 'Delete a comment by ID',
+                    tags: ['Comments'],
+                    parameters: [
+                        {
+                            name: 'commentId',
+                            in: 'path',
+                            required: true,
+                            description: 'Comment ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Comment deleted successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            message: { type: 'string' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/users': {
+                get: {
+                    summary: 'List all users (Admin only)',
+                    description: 'Retrieve a paginated list of all users. Requires admin role.',
+                    tags: ['Users'],
+                    parameters: [
+                        {
+                            name: 'page',
+                            in: 'query',
+                            description: 'Page number',
+                            schema: { type: 'integer', minimum: 1, default: 1 }
+                        },
+                        {
+                            name: 'limit',
+                            in: 'query',
+                            description: 'Items per page',
+                            schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Successful response',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: {
+                                                type: 'array',
+                                                items: { $ref: '#/components/schemas/User' }
+                                            },
+                                            pagination: { $ref: '#/components/schemas/Pagination' }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '403': {
+                            description: 'Forbidden - Admin access required',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/Error' }
+                                }
+                            }
+                        }
+                    }
+                },
+                post: {
+                    summary: 'Create a user (Admin only)',
+                    description: 'Create a new user account. Requires admin role.',
+                    tags: ['Users'],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        email: { type: 'string', format: 'email' },
+                                        password: { type: 'string' },
+                                        full_name: { type: 'string' },
+                                        role: { type: 'string', enum: ['user', 'support', 'admin'], default: 'user' }
+                                    },
+                                    required: ['email', 'password']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        '201': {
+                            description: 'User created successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/User' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/users/{userId}': {
+                get: {
+                    summary: 'Get a single user (Admin only)',
+                    description: 'Retrieve details of a specific user. Requires admin role.',
+                    tags: ['Users'],
+                    parameters: [
+                        {
+                            name: 'userId',
+                            in: 'path',
+                            required: true,
+                            description: 'User ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Successful response',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/User' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                patch: {
+                    summary: 'Update a user (Admin only)',
+                    description: 'Update an existing user. Requires admin role.',
+                    tags: ['Users'],
+                    parameters: [
+                        {
+                            name: 'userId',
+                            in: 'path',
+                            required: true,
+                            description: 'User ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        full_name: { type: 'string' },
+                                        role: { type: 'string', enum: ['user', 'support', 'admin'] },
+                                        is_active: { type: 'boolean' },
+                                        avatar_url: { type: 'string', nullable: true }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        '200': {
+                            description: 'User updated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            data: { $ref: '#/components/schemas/User' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                delete: {
+                    summary: 'Delete a user (Admin only)',
+                    description: 'Delete a user by ID. Requires admin role.',
+                    tags: ['Users'],
+                    parameters: [
+                        {
+                            name: 'userId',
+                            in: 'path',
+                            required: true,
+                            description: 'User ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'User deleted successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            message: { type: 'string' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         tags: [
