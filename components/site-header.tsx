@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { createServerClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { logout } from '@/app/actions/auth-actions'
+import { ImpersonationSelector } from '@/components/admin/impersonation-selector'
 
 export async function SiteHeader() {
     const supabase = await createServerClient()
@@ -55,6 +56,7 @@ export async function SiteHeader() {
                 <div className="flex items-center gap-4">
                     {user ? (
                         <div className="flex items-center gap-4">
+                            {profile?.role === 'admin' && <ImpersonationSelector />}
                             <span className="text-sm text-muted-foreground">
                                 {user.email}
                             </span>
@@ -74,4 +76,3 @@ export async function SiteHeader() {
         </header>
     )
 }
-

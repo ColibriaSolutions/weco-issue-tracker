@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { cookies } from 'next/headers'
 
 const authSchema = z.object({
     email: z.string().email(),
@@ -32,7 +33,7 @@ export async function login(formData: FormData) {
 
     // Check if user profile exists and is active
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (user) {
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -115,6 +116,11 @@ export async function signup(formData: FormData) {
 export async function logout() {
     const supabase = await createServerClient()
     await supabase.auth.signOut()
+
+    // Clear impersonation cookie if it exists
+    const cookieStore = await cookies()
+    cookieStore.delete('impersonate_user_id')
+
     revalidatePath('/', 'layout')
     redirect('/login')
 }

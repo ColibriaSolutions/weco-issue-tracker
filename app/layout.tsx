@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 import { SiteHeader } from '@/components/site-header'
+import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -32,6 +33,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
         <SiteHeader />
+        <ImpersonationBanner />
         <main className="container py-6">
           {children}
         </main>
