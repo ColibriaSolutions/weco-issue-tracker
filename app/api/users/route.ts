@@ -1,32 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import { requireApiKey } from '@/lib/api/auth'
+import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { validateApiKeyRequest } from '@/lib/api/auth'
 
 export async function GET(request: NextRequest) {
     // Authenticate request
-    const authError = await requireApiKey(request)
-    if (authError) return authError
+    const authResult = await validateApiKeyRequest(request)
+    if (!authResult.valid) {
+        return NextResponse.json(
+            { error: authResult.error || 'Unauthorized' },
+            { status: 401 }
+        )
+    }
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
     const offset = (page - 1) * limit
 
-    const supabase = await createServerClient()
+    const supabase = createServiceRoleClient()
 
     // Check if requester is admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-        return NextResponse.json(
-            { error: 'Unauthorized' },
-            { status: 401 }
-        )
-    }
-
     const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', user.id)
+        .eq('id', authResult.userId)
         .single()
 
     if (profile?.role !== 'admin') {
@@ -80,25 +77,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     // Authenticate request
-    const authError = await requireApiKey(request)
-    if (authError) return authError
-
-    const body = await request.json()
-    const supabase = await createServerClient()
-
-    // Check if requester is admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const authResult = await validateApiKeyRequest(request)
+    if (!authResult.valid) {
         return NextResponse.json(
-            { error: 'Unauthorized' },
+            { error: authResult.error || 'Unauthorized' },
             { status: 401 }
         )
     }
 
+    const body = await request.json()
+    const supabase = createServiceRoleClient()
+
+    // Check if requester is admin
     const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', user.id)
+        .eq('id', authResult.userId)
         .single()
 
     if (profile?.role !== 'admin') {

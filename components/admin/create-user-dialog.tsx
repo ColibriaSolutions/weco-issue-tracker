@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createUser } from '@/app/actions/admin-actions'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,21 +22,13 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { REGIONS } from '@/lib/constants/regions'
 
 export function CreateUserDialog() {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [selectedRole, setSelectedRole] = useState('user')
-    const [regions, setRegions] = useState<Array<{code: string, name: string}>>([])
     const { toast } = useToast()
-
-    useEffect(() => {
-        // Load regions from API
-        fetch('/api/regions')
-            .then(res => res.json())
-            .then(data => setRegions(data.data || []))
-            .catch(err => console.error('Failed to load regions:', err))
-    }, [])
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -146,7 +138,7 @@ export function CreateUserDialog() {
                                             <SelectValue placeholder="Select a region" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {regions.map((region) => (
+                                            {REGIONS.map((region) => (
                                                 <SelectItem key={region.code} value={region.code}>
                                                     {region.name}
                                                 </SelectItem>

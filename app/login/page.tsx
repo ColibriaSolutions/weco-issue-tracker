@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { login, signup } from '@/app/actions/auth-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,20 +21,12 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { REGIONS } from '@/lib/constants/regions'
 
 export default function LoginPage() {
     const [isLogin, setIsLogin] = useState(true)
     const [loading, setLoading] = useState(false)
-    const [regions, setRegions] = useState<Array<{code: string, name: string}>>([])
     const { toast } = useToast()
-
-    useEffect(() => {
-        // Load regions from API
-        fetch('/api/regions')
-            .then(res => res.json())
-            .then(data => setRegions(data.data || []))
-            .catch(err => console.error('Failed to load regions:', err))
-    }, [])
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -93,7 +85,7 @@ export default function LoginPage() {
                                             <SelectValue placeholder="Select your region" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {regions.map((region) => (
+                                            {REGIONS.map((region) => (
                                                 <SelectItem key={region.code} value={region.code}>
                                                     {region.name}
                                                 </SelectItem>

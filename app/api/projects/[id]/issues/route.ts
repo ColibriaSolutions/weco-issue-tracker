@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import { requireApiKey } from '@/lib/api/auth'
+import { createServiceRoleClient } from '@/lib/supabase/server'
+import { validateApiKeyRequest } from '@/lib/api/auth'
 import { put } from '@vercel/blob'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
@@ -10,8 +10,13 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     // Authenticate request
-    const authError = await requireApiKey(request)
-    if (authError) return authError
+    const authResult = await validateApiKeyRequest(request)
+    if (!authResult.valid) {
+        return NextResponse.json(
+            { error: authResult.error || 'Unauthorized' },
+            { status: 401 }
+        )
+    }
 
     const { id } = await params
     const { searchParams } = new URL(request.url)
@@ -19,7 +24,7 @@ export async function GET(
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
     const offset = (page - 1) * limit
 
-    const supabase = await createServerClient()
+    const supabase = createServiceRoleClient()
 
     // Get total count
     const { count } = await supabase
@@ -58,13 +63,19 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     // Authenticate request
-    const authError = await requireApiKey(request)
-    if (authError) return authError
+    const authResult = await validateApiKeyRequest(request)
+    if (!authResult.valid) {
+        return NextResponse.json(
+            { error: authResult.error || 'Unauthorized' },
+            { status: 401 }
+        )
+    }
 
     const { id } = await params
     const contentType = request.headers.get('content-type') || ''
 
     let title, description, status, priority, screenshotUrl = null
+    let requestedUserId = null
 
     // Handle both JSON and multipart/form-data
     if (contentType.includes('multipart/form-data')) {
@@ -73,6 +84,7 @@ export async function POST(
         description = formData.get('description') as string | null
         status = formData.get('status') as string | null
         priority = formData.get('priority') as string | null
+        requestedUserId = formData.get('created_by') as string | null
 
         // Handle screenshot file upload
         const screenshot = formData.get('screenshot') as File | null
@@ -115,6 +127,7 @@ export async function POST(
         status = body.status
         priority = body.priority
         screenshotUrl = body.screenshot_url || null
+        requestedUserId = body.created_by || null
     }
 
     // Validate required fields
@@ -143,7 +156,41 @@ export async function POST(
         )
     }
 
-    const supabase = await createServerClient()
+    const supabase = createServiceRoleClient()
+
+    // Check permissions
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authResult.userId)
+        .single()
+
+    const isAdmin = profile?.role === 'admin'
+
+    // If not admin, check project membership
+    if (!isAdmin) {
+        const { data: member } = await supabase
+            .from('project_members')
+            .select('role')
+            .eq('project_id', id)
+            .eq('user_id', authResult.userId)
+            .single()
+
+        if (!member) {
+            return NextResponse.json(
+                { error: 'Forbidden - You are not a member of this project' },
+                { status: 403 }
+            )
+        }
+    }
+
+    // Determine created_by user
+    let createdBy = authResult.userId
+
+    // If admin, allow impersonation
+    if (isAdmin && requestedUserId) {
+        createdBy = requestedUserId
+    }
 
     // Create issue
     const { data: issue, error } = await supabase
@@ -154,7 +201,8 @@ export async function POST(
             description: description || null,
             status: status || 'open',
             priority: priority || 'medium',
-            screenshot_url: screenshotUrl
+            screenshot_url: screenshotUrl,
+            created_by: createdBy // Explicitly set created_by
         })
         .select()
         .single()

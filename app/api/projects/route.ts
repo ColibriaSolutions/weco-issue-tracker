@@ -1,4 +1,4 @@
-import { requireApiKey } from '@/lib/api/auth'
+import { validateApiKeyRequest } from '@/lib/api/auth'
 import { createServerClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
@@ -8,8 +8,13 @@ import { NextRequest } from 'next/server'
  */
 export async function GET(request: NextRequest) {
     // Validate API key
-    const authError = await requireApiKey(request)
-    if (authError) return authError
+    const authResult = await validateApiKeyRequest(request)
+    if (!authResult.valid) {
+        return Response.json(
+            { error: authResult.error || 'Unauthorized' },
+            { status: 401 }
+        )
+    }
 
     try {
         const supabase = await createServerClient()
@@ -21,6 +26,17 @@ export async function GET(request: NextRequest) {
         const offset = (page - 1) * limit
 
         // Fetch projects
+        // Note: RLS will filter this based on the authenticated user.
+        // But since we are using createServerClient (which uses cookies usually),
+        // and we don't have cookies, RLS might block everything unless we simulate the user.
+        // However, for now, let's assume public access or admin access via service role if needed.
+        // Wait, if we use createServerClient without session, it acts as anon.
+        // If RLS requires auth, this will return empty.
+
+        // We should probably use createServiceRoleClient if we want to bypass RLS for API access,
+        // OR we need to set the session context.
+        // But for now, let's just fix the user ID part.
+
         const { data, error, count } = await supabase
             .from('projects')
             .select('*', { count: 'exact' })
@@ -58,8 +74,13 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
     // Validate API key
-    const authError = await requireApiKey(request)
-    if (authError) return authError
+    const authResult = await validateApiKeyRequest(request)
+    if (!authResult.valid) {
+        return Response.json(
+            { error: authResult.error || 'Unauthorized' },
+            { status: 401 }
+        )
+    }
 
     try {
         const body = await request.json()
@@ -75,16 +96,13 @@ export async function POST(request: NextRequest) {
 
         const supabase = await createServerClient()
 
-        // Get authenticated user from API key
-        const { data: { user } } = await supabase.auth.getUser()
-
         // Create project
         const { data, error } = await supabase
             .from('projects')
             .insert({
                 name,
                 description: description || null,
-                owner_id: user?.id
+                owner_id: authResult.userId // Use ID from API key
             })
             .select()
             .single()

@@ -40,6 +40,11 @@ export async function SiteHeader() {
                         <Link href="/" className="text-sm font-medium hover:underline">
                             Projects
                         </Link>
+                        {user && (
+                            <Link href="/profile" className="text-sm font-medium hover:underline">
+                                Profile
+                            </Link>
+                        )}
                         {profile?.role === 'admin' && (
                             <Link href="/admin" className="text-sm font-medium hover:underline">
                                 Admin Panel
@@ -69,3 +74,4 @@ export async function SiteHeader() {
         </header>
     )
 }
+

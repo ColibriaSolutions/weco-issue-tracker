@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/server'
-import { requireApiKey } from '@/lib/api/auth'
+import { validateApiKeyRequest } from '@/lib/api/auth'
 import { put } from '@vercel/blob'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
@@ -10,8 +10,13 @@ export async function GET(
     { params }: { params: Promise<{ issueId: string }> }
 ) {
     // Authenticate request
-    const authError = await requireApiKey(request)
-    if (authError) return authError
+    const authResult = await validateApiKeyRequest(request)
+    if (!authResult.valid) {
+        return NextResponse.json(
+            { error: authResult.error || 'Unauthorized' },
+            { status: 401 }
+        )
+    }
 
     const { issueId } = await params
     const { searchParams } = new URL(request.url)
@@ -65,8 +70,13 @@ export async function POST(
     { params }: { params: Promise<{ issueId: string }> }
 ) {
     // Authenticate request
-    const authError = await requireApiKey(request)
-    if (authError) return authError
+    const authResult = await validateApiKeyRequest(request)
+    if (!authResult.valid) {
+        return NextResponse.json(
+            { error: authResult.error || 'Unauthorized' },
+            { status: 401 }
+        )
+    }
 
     const { issueId } = await params
     const contentType = request.headers.get('content-type') || ''
@@ -141,6 +151,55 @@ export async function POST(
     }
 
     const supabase = createServiceRoleClient()
+
+    // Validate permissions
+    // 1. Check if admin
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authResult.userId)
+        .single()
+
+    const isAdmin = profile?.role === 'admin'
+
+    // 2. If not admin, check if user is member of the project
+    if (!isAdmin) {
+        // Get project_id from issue
+        const { data: issue } = await supabase
+            .from('issues')
+            .select('project_id')
+            .eq('id', issueId)
+            .single()
+
+        if (!issue) {
+            return NextResponse.json(
+                { error: 'Issue not found' },
+                { status: 404 }
+            )
+        }
+
+        const { data: member } = await supabase
+            .from('project_members')
+            .select('role')
+            .eq('project_id', issue.project_id)
+            .eq('user_id', authResult.userId)
+            .single()
+
+        if (!member) {
+            return NextResponse.json(
+                { error: 'Forbidden - You are not a member of this project' },
+                { status: 403 }
+            )
+        }
+    }
+
+    // 3. If not admin, ensure user_id matches authenticated user
+    if (!isAdmin && userId !== authResult.userId) {
+        return NextResponse.json(
+            { error: 'Forbidden - You can only create comments for yourself' },
+            { status: 403 }
+        )
+    }
 
     // Create comment
     const { data: comment, error } = await supabase
