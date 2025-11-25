@@ -11,7 +11,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'Colibria Bug Tracker',
-  description: 'Simple and efficient bug tracking for your projects',
+  description: 'Simple and efficient bug tracker',
   generator: 'v0.app',
   icons: {
     icon: [

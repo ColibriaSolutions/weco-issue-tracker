@@ -115,6 +115,12 @@ export function CommentForm({ issueId, onCommentAdded }: { issueId: string; onCo
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
+
+        // Append the selected file from state if it exists (handles pasted images)
+        if (selectedFile) {
+            formData.set('attachment', selectedFile)
+        }
+
         const result = await addComment(formData)
         setLoading(false)
 
@@ -148,7 +154,7 @@ export function CommentForm({ issueId, onCommentAdded }: { issueId: string; onCo
             <div className="flex gap-2">
                 <Textarea
                     name="content"
-                    placeholder="Write a comment..."
+                    placeholder="Write a comment... (paste image to attach)"
                     className="min-h-[80px] max-h-[200px] resize-none"
                     required={!selectedFile}
                 />

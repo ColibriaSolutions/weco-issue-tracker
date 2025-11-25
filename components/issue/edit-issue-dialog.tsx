@@ -155,6 +155,12 @@ export function EditIssueDialog({ issue, open, onOpenChange, onSuccess }: EditIs
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
+
+        // Append the selected file from state if it exists (handles pasted images)
+        if (selectedFile) {
+            formData.set('screenshot', selectedFile)
+        }
+
         const result = await updateIssue(issue.id, formData)
         setLoading(false)
 
@@ -323,14 +329,19 @@ export function EditIssueDialog({ issue, open, onOpenChange, onSuccess }: EditIs
                                 onChange={handleFileSelect}
                                 className="hidden"
                             />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <Upload className="h-4 w-4 mr-2" />
-                                {issue.screenshot_url || previewUrl ? 'Replace Screenshot' : 'Upload Screenshot'}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    {issue.screenshot_url || previewUrl ? 'Replace Screenshot' : 'Upload Screenshot'}
+                                </Button>
+                                <span className="text-xs text-muted-foreground">
+                                    or press Ctrl+V to paste
+                                </span>
+                            </div>
                         </div>
                     </div>
 
