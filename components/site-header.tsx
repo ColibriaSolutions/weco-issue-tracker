@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { logout } from '@/app/actions/auth-actions'
 import { ImpersonationSelector } from '@/components/admin/impersonation-selector'
+import { LoginButton } from '@/components/auth/login-button'
 
 export async function SiteHeader() {
     const supabase = await createServerClient()
@@ -47,9 +48,11 @@ export async function SiteHeader() {
                             </Link>
                         )}
                         {profile?.role === 'admin' && (
-                            <Link href="/admin" className="text-sm font-medium hover:underline">
-                                Admin Panel
-                            </Link>
+                            <>
+                                <Link href="/admin" className="text-sm font-medium hover:underline">
+                                    Admin Panel
+                                </Link>
+                            </>
                         )}
                     </nav>
                 </div>
@@ -67,9 +70,7 @@ export async function SiteHeader() {
                             </form>
                         </div>
                     ) : (
-                        <Link href="/login">
-                            <Button size="sm">Login</Button>
-                        </Link>
+                        <LoginButton />
                     )}
                 </div>
             </div>

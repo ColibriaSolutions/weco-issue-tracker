@@ -9,6 +9,9 @@ interface Issue {
   description: string
   status: 'open' | 'in_progress' | 'closed'
   priority: 'low' | 'medium' | 'high' | 'critical'
+  component: string
+  region: string
+  project_id: string
   screenshot_url: string | null
   created_at: string
   creator?: {
@@ -53,9 +56,9 @@ export async function IssueList({ projectId }: { projectId: string }) {
   }
 
   const groupedIssues = {
-    open: issues?.filter((i) => i.status === 'open') || [],
-    in_progress: issues?.filter((i) => i.status === 'in_progress') || [],
-    closed: issues?.filter((i) => i.status === 'closed') || [],
+    open: issues?.filter((i: Issue) => i.status === 'open') || [],
+    in_progress: issues?.filter((i: Issue) => i.status === 'in_progress') || [],
+    closed: issues?.filter((i: Issue) => i.status === 'closed') || [],
   }
 
   if (!issues || issues.length === 0) {
@@ -87,9 +90,8 @@ export async function IssueList({ projectId }: { projectId: string }) {
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="text-base">{issue.title}</CardTitle>
                       <Badge
-                        className={`${
-                          priorityColors[issue.priority]
-                        } text-white`}
+                        className={`${priorityColors[issue.priority]
+                          } text-white`}
                       >
                         {issue.priority}
                       </Badge>

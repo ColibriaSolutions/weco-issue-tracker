@@ -122,7 +122,7 @@ export function ManageMembersDialog({
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger asChild suppressHydrationWarning>
                 <Button variant="outline" size="sm">
                     <Users className="h-4 w-4 mr-2" />
                     Manage Members

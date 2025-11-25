@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,6 +33,33 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
   const [priority, setPriority] = useState<string>('medium')
   const router = useRouter()
   const { toast } = useToast()
+
+  // Handle paste events for clipboard images
+  useEffect(() => {
+    if (!open) return
+
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) {
+            setScreenshot(file)
+            toast({
+              title: 'Image pasted',
+              description: 'Screenshot added from clipboard',
+            })
+          }
+          break
+        }
+      }
+    }
+
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [open, toast])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -68,12 +95,12 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
 
       if (result.error) {
         // Handle validation errors (object) or general errors (string)
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
+        const errorMessage = typeof result.error === 'string'
+          ? result.error
           : Object.entries(result.error)
-              .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
-              .join('\n')
-        
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .join('\n')
+
         toast({
           title: 'Validation Error',
           description: errorMessage,
@@ -163,21 +190,32 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
             <div className="grid gap-2">
               <Label htmlFor="screenshot">Screenshot (Optional)</Label>
               {screenshot ? (
-                <div className="flex items-center gap-2 p-3 border rounded-md">
-                  <span className="text-sm flex-1 truncate">
-                    {screenshot.name}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setScreenshot(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 p-3 border rounded-md">
+                    <span className="text-sm flex-1 truncate">
+                      {screenshot.name}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setScreenshot(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {screenshot.type.startsWith('image/') && (
+                    <div className="border rounded-lg overflow-hidden bg-muted/50 p-2">
+                      <img
+                        src={URL.createObjectURL(screenshot)}
+                        alt="Screenshot preview"
+                        className="w-full h-auto max-h-64 object-contain rounded-md"
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-muted/50 transition-colors">
                   <input
                     type="file"
                     id="screenshot"
@@ -193,9 +231,13 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
                     className="cursor-pointer flex flex-col items-center gap-2"
                   >
                     <Upload className="h-8 w-8 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      Click to upload or drag and drop
-                    </span>
+                    <div className="text-sm">
+                      <span className="text-primary font-medium">Click to upload</span>
+                      <span className="text-muted-foreground"> or press Ctrl+V to paste</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG up to 50MB
+                    </p>
                   </label>
                 </div>
               )}

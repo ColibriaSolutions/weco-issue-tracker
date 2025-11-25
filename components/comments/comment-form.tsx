@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { addComment } from '@/app/actions/comment-actions'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,6 +16,53 @@ export function CommentForm({ issueId, onCommentAdded }: { issueId: string; onCo
     const formRef = useRef<HTMLFormElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const { toast } = useToast()
+
+    // Handle paste events for clipboard images
+    useEffect(() => {
+        const handlePaste = (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items
+            if (!items) return
+
+            for (const item of Array.from(items)) {
+                if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
+                    const file = item.getAsFile()
+                    if (file) {
+                        // Validate file size
+                        if (file.size > MAX_FILE_SIZE) {
+                            toast({
+                                title: 'File too large',
+                                description: 'File size must be less than 50MB',
+                                variant: 'destructive',
+                            })
+                            return
+                        }
+
+                        setSelectedFile(file)
+
+                        // Create preview for images
+                        if (item.type.startsWith('image/')) {
+                            const reader = new FileReader()
+                            reader.onloadend = () => {
+                                setPreviewUrl(reader.result as string)
+                            }
+                            reader.readAsDataURL(file)
+                        } else {
+                            setPreviewUrl(null)
+                        }
+
+                        toast({
+                            title: 'File pasted',
+                            description: 'Attachment added from clipboard',
+                        })
+                    }
+                    break
+                }
+            }
+        }
+
+        document.addEventListener('paste', handlePaste)
+        return () => document.removeEventListener('paste', handlePaste)
+    }, [toast])
 
     function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]

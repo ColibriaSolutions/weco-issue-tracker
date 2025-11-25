@@ -82,11 +82,13 @@ Each API key has a monthly request limit (default: 10,000 requests/month). The c
                         description: { type: 'string', nullable: true, description: 'Issue description' },
                         status: { type: 'string', enum: ['open', 'in_progress', 'closed'], description: 'Issue status' },
                         priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Issue priority' },
+                        component: { type: 'string', description: 'System component (e.g., Frontend, API)' },
+                        region: { type: 'string', description: 'Region code (e.g., CA, TN, CN-SZ)' },
                         screenshot_url: { type: 'string', nullable: true, description: 'URL to screenshot' },
                         created_at: { type: 'string', format: 'date-time', description: 'Creation timestamp' },
                         updated_at: { type: 'string', format: 'date-time', nullable: true, description: 'Last update timestamp' }
                     },
-                    required: ['id', 'project_id', 'title', 'status', 'priority', 'created_at']
+                    required: ['id', 'project_id', 'title', 'status', 'priority', 'component', 'region', 'created_at']
                 },
                 Comment: {
                     type: 'object',
@@ -547,7 +549,7 @@ Each API key has a monthly request limit (default: 10,000 requests/month). The c
             '/api/projects/{id}/issues': {
                 post: {
                     summary: 'Create a new issue',
-                    description: 'Create a new issue in the specified project. Supports JSON or multipart/form-data for file uploads.',
+                    description: 'Create a new issue in the specified project. Supports JSON or multipart/form-data for file uploads.\n\n**Admin Override**: Admin users can specify `created_by` to create issues on behalf of other users.',
                     tags: ['Issues'],
                     parameters: [
                         {
@@ -569,9 +571,12 @@ Each API key has a monthly request limit (default: 10,000 requests/month). The c
                                         description: { type: 'string' },
                                         status: { type: 'string', enum: ['open', 'in_progress', 'closed'] },
                                         priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                                        component: { type: 'string' },
+                                        region: { type: 'string' },
+                                        created_by: { type: 'string', format: 'uuid', description: 'User ID to set as creator (admin only). If not provided or if non-admin, defaults to authenticated user.' },
                                         screenshot_url: { type: 'string', format: 'uri' }
                                     },
-                                    required: ['title', 'status', 'priority']
+                                    required: ['title', 'status', 'priority', 'component', 'region']
                                 }
                             },
                             'multipart/form-data': {
@@ -582,9 +587,12 @@ Each API key has a monthly request limit (default: 10,000 requests/month). The c
                                         description: { type: 'string' },
                                         status: { type: 'string', enum: ['open', 'in_progress', 'closed'] },
                                         priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                                        component: { type: 'string' },
+                                        region: { type: 'string' },
+                                        created_by: { type: 'string', format: 'uuid', description: 'User ID to set as creator (admin only)' },
                                         screenshot: { type: 'string', format: 'binary' }
                                     },
-                                    required: ['title', 'status', 'priority']
+                                    required: ['title', 'status', 'priority', 'component', 'region']
                                 }
                             }
                         }
@@ -606,10 +614,63 @@ Each API key has a monthly request limit (default: 10,000 requests/month). The c
                     }
                 }
             },
+            '/api/issues/{issueId}': {
+                delete: {
+                    summary: 'Delete an issue',
+                    description: 'Delete an issue. Only admins or the issue creator can delete issues. Deleting an issue will also delete all associated comments.',
+                    tags: ['Issues'],
+                    parameters: [
+                        {
+                            name: 'issueId',
+                            in: 'path',
+                            required: true,
+                            description: 'Issue ID',
+                            schema: { type: 'string', format: 'uuid' }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'Issue deleted successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            message: { type: 'string' },
+                                            data: {
+                                                type: 'object',
+                                                properties: {
+                                                    id: { type: 'string', format: 'uuid' }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '404': {
+                            description: 'Issue not found',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/Error' }
+                                }
+                            }
+                        },
+                        '403': {
+                            description: 'Forbidden - Only admins or issue creators can delete issues',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/Error' }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             '/api/issues/{issueId}/comments': {
                 post: {
                     summary: 'Add a comment',
-                    description: 'Add a comment to an issue. Supports JSON or multipart/form-data for file uploads.',
+                    description: 'Add a comment to an issue. Supports JSON or multipart/form-data for file uploads.\n\n**Admin Override**: Admin users can specify any `user_id` to create comments on behalf of other users. Non-admin users can only create comments for themselves.',
                     tags: ['Comments'],
                     parameters: [
                         {

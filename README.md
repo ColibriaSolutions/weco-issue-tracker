@@ -302,21 +302,109 @@ graph LR
 The application uses **Supabase Auth** for user management, which separates authentication credentials from application data.
 
 ### `auth.users` vs `public.profiles`
-- **`auth.users`**: Managed by Supabase. Stores secure credentials (email, encrypted password, metadata). Not directly accessible via the API.
-- **`public.profiles`**: A public table linked to `auth.users` via `id`. Stores application-specific user data:
-    - `role`: 'user' | 'support' | 'admin'
-    - `full_name`: Display name
-    - `is_active`: Account status
-    - `avatar_url`: Profile picture
+
+These are **two separate tables** that work together:
+
+| Table | Purpose | Managed By | Contains |
+|-------|---------|------------|----------|
+| **`auth.users`** | Authentication | Supabase | Email, password hash, OAuth tokens, metadata |
+| **`public.profiles`** | Application data | Your app | `role`, `full_name`, `department`, `region`, `is_active` |
+
+**Key Points:**
+- `auth.users.id` ←→ `profiles.id` (UUID foreign key relationship)
+- You **cannot** directly query `auth.users` from your app (it's in a protected schema)
+- You **can** query `profiles` with RLS policies
+- Admin operations use the service role client to access both tables
+
+### How User Creation Works
+
+#### 1. **UI Signup** (`/signup` page)
+```
+User fills form → supabase.auth.signUp() → Creates auth.users entry
+                                         ↓
+                              Database trigger fires
+                                         ↓
+                              Creates profiles entry automatically
+                                         ↓
+                              Signup action updates department/region
+```
+
+#### 2. **API/Seeding** (`seed-data.ps1`)
+```
+Script calls /api/users → supabase.auth.admin.createUser() → Creates auth.users
+                                                            ↓
+                                              Database trigger fires
+                                                            ↓
+                                              Creates profiles entry
+                                                            ↓
+                                              API updates department/region
+```
+
+#### 3. **Database Trigger** (`handle_new_user()`)
+```sql
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+```
+
+This trigger **automatically** creates a `profiles` row whenever a user is created in `auth.users`.
 
 ### Row Level Security (RLS)
-- **Profiles**: Publicly readable by authenticated users. Writable only by the user themselves (limited fields) or Admins.
-- **Comments**: Readable by all. Writable only by the author.
-- **Issues**: Readable by all (currently). Writable by authenticated users.
+
+Current policies (simplified to avoid recursion):
+
+```sql
+-- All authenticated users can view all profiles
+CREATE POLICY "Enable read access for all authenticated users"
+ON profiles FOR SELECT TO authenticated USING (true);
+
+-- Users can only update their own profile
+CREATE POLICY "Enable update for users based on user_id"
+ON profiles FOR UPDATE TO authenticated
+USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+```
+
+**Admin operations** bypass RLS by using `createServiceRoleClient()` instead of the regular session client.
+
+### Troubleshooting
+
+#### Problem: "Account not found" after signup
+
+**Cause**: The `profiles` table is missing an entry for the user.
+
+**Check**:
+1. Go to Supabase Dashboard → Authentication → Users (should see the user)
+2. Go to Database → Table Editor → profiles (user might be missing here)
+
+**Fix**:
+```sql
+-- Run scripts/backfill-profiles.sql to create missing profiles
+-- This inserts profiles for all auth users that don't have one
+```
+
+#### Problem: "Infinite recursion detected in policy"
+
+**Cause**: RLS policies that query the same table they're protecting.
+
+**Fix**: Use the simplified policies in `scripts/fix-profiles-table.sql` that don't create circular dependencies.
+
+#### Problem: Trigger not firing for new users
+
+**Check**:
+```sql
+-- Verify trigger exists
+SELECT * FROM pg_trigger WHERE tgname = 'on_auth_user_created';
+
+-- Verify function exists
+SELECT * FROM pg_proc WHERE proname = 'handle_new_user';
+```
+
+**Fix**: Run `scripts/backfill-profiles.sql` to recreate the trigger.
 
 ### Admin User Provisioning & Email Quota
 
-**Important:** When creating users via the Admin Dashboard, **no confirmation emails are sent** and **no email quota is consumed**.
+**Important:** When creating users via the Admin Dashboard or API, **no confirmation emails are sent** and **no email quota is consumed**.
 
 - **Admin-created users** use `admin.createUser()` with `email_confirm: true`, bypassing the email system entirely
 - Users can login immediately with the temporary password provided

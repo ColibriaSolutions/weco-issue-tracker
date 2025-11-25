@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { createServerClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -73,7 +74,9 @@ export default async function ProjectPage({
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <IssueList projectId={id} />
+        <Suspense fallback={<div>Loading issues...</div>}>
+          <IssueList projectId={id} />
+        </Suspense>
       </main>
     </div>
   )

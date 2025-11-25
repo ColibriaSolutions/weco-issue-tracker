@@ -29,7 +29,8 @@ export function ImpersonationBanner() {
 
     async function handleStopImpersonation() {
         await stopImpersonation()
-        router.refresh()
+        setImpersonatedUser(null)
+        window.location.href = '/'
     }
 
     return (

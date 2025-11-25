@@ -34,9 +34,7 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <SiteHeader />
         <ImpersonationBanner />
-        <main className="container py-6">
-          {children}
-        </main>
+        {children}
         <Analytics />
       </body>
     </html>
