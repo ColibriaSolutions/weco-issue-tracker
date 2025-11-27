@@ -70,6 +70,7 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
     const formData = new FormData(e.currentTarget)
     const title = formData.get('title') as string
     const description = formData.get('description') as string
+    const component = formData.get('component') as string
 
     try {
       let screenshotUrl = null
@@ -92,6 +93,7 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
         title,
         description,
         priority,
+        component,
         region,
         screenshotUrl,
       })
@@ -101,8 +103,12 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
         const errorMessage = typeof result.error === 'string'
           ? result.error
           : Object.entries(result.error)
-            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
-            .join('\n')
+            .map(([field, errors]) => {
+              const fieldName = field.charAt(0).toUpperCase() + field.slice(1)
+              const errorText = Array.isArray(errors) ? errors.join(', ') : String(errors)
+              return `${fieldName}: ${errorText}`
+            })
+            .join('. ')
 
         toast({
           title: 'Validation Error',
@@ -174,6 +180,19 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
               />
               <p className="text-xs text-muted-foreground">
                 Minimum 10 characters required
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="component">Component</Label>
+              <Input
+                id="component"
+                name="component"
+                placeholder="e.g. Sales Order, Purchase, Inventory..."
+                required
+                minLength={2}
+              />
+              <p className="text-xs text-muted-foreground">
+                Minimum 2 characters required
               </p>
             </div>
             <div className="grid gap-2">

@@ -5,6 +5,7 @@ import './globals.css'
 
 import { SiteHeader } from '@/components/site-header'
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
+import { Toaster } from '@/components/ui/toaster'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -35,6 +36,7 @@ export default function RootLayout({
         <SiteHeader />
         <ImpersonationBanner />
         {children}
+        <Toaster />
         <Analytics />
       </body>
     </html>
