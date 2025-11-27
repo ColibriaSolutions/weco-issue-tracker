@@ -75,6 +75,8 @@ export async function POST(
     const contentType = request.headers.get('content-type') || ''
 
     let title, description, status, priority, screenshotUrl = null
+    let component = null
+    let region = null
     let requestedUserId = null
 
     // Handle both JSON and multipart/form-data
@@ -84,6 +86,8 @@ export async function POST(
         description = formData.get('description') as string | null
         status = formData.get('status') as string | null
         priority = formData.get('priority') as string | null
+        component = formData.get('component') as string | null
+        region = formData.get('region') as string | null
         requestedUserId = formData.get('created_by') as string | null
 
         // Handle screenshot file upload
@@ -126,6 +130,8 @@ export async function POST(
         description = body.description
         status = body.status
         priority = body.priority
+        component = body.component || null
+        region = body.region || null
         screenshotUrl = body.screenshot_url || null
         requestedUserId = body.created_by || null
     }
@@ -201,6 +207,8 @@ export async function POST(
             description: description || null,
             status: status || 'open',
             priority: priority || 'medium',
+            component: component || null,
+            region: region || null,
             screenshot_url: screenshotUrl,
             created_by: createdBy // Explicitly set created_by
         })
