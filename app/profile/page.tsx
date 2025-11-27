@@ -5,6 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { redirect } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
+// Mark page as dynamic since it uses cookies (via createServerClient)
+export const dynamic = 'force-dynamic'
+
 export default async function ProfilePage() {
     const result = await getCurrentUser()
 
