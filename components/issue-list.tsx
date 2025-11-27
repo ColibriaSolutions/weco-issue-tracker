@@ -34,10 +34,16 @@ const priorityColors = {
   critical: 'bg-red-500',
 }
 
-export async function IssueList({ projectId }: { projectId: string }) {
+export async function IssueList({ 
+  projectId, 
+  searchQuery 
+}: { 
+  projectId: string
+  searchQuery?: string | null
+}) {
   const supabase = await createServerClient()
 
-  const { data: issues, error } = await supabase
+  let query = supabase
     .from('issues')
     .select(`
       *,
@@ -48,13 +54,40 @@ export async function IssueList({ projectId }: { projectId: string }) {
       )
     `)
     .eq('project_id', projectId)
-    .order('created_at', { ascending: false })
+
+  // Apply search filter if provided (minimum 2 characters)
+  if (searchQuery && searchQuery.trim().length >= 2) {
+    const searchPattern = `%${searchQuery.trim()}%`
+    
+    // First, find user IDs that match the creator name
+    const { data: matchingProfiles } = await supabase
+      .from('profiles')
+      .select('id')
+      .ilike('full_name', searchPattern)
+    
+    const matchingUserIds = matchingProfiles?.map(p => p.id) || []
+    
+    // Build OR condition: title matches OR created_by is in matching user IDs
+    if (matchingUserIds.length > 0) {
+      // Use .or() with proper PostgREST syntax
+      // Format: "field.operator.value,field2.operator.value2"
+      // For .in(), use parentheses: field.in.(value1,value2)
+      const orCondition = `title.ilike.${searchPattern},created_by.in.(${matchingUserIds.join(',')})`
+      query = query.or(orCondition)
+    } else {
+      // Only search by title if no matching creators found
+      query = query.ilike('title', searchPattern)
+    }
+  }
+
+  const { data: issues, error } = await query.order('created_at', { ascending: false })
 
   if (error) {
     console.error('[v0] Error fetching issues:', error)
     return <div className="text-destructive">Error loading issues</div>
   }
 
+  const totalCount = issues?.length || 0
   const groupedIssues = {
     open: issues?.filter((i: Issue) => i.status === 'open') || [],
     in_progress: issues?.filter((i: Issue) => i.status === 'in_progress') || [],
@@ -65,23 +98,40 @@ export async function IssueList({ projectId }: { projectId: string }) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <p className="text-muted-foreground mb-4">No issues reported yet</p>
-          <p className="text-sm text-muted-foreground">
-            Report your first issue to get started
-          </p>
+          {searchQuery && searchQuery.trim().length >= 2 ? (
+            <>
+              <p className="text-muted-foreground mb-4">No issues found</p>
+              <p className="text-sm text-muted-foreground">
+                No issues match your search query &quot;{searchQuery}&quot;
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-muted-foreground mb-4">No issues reported yet</p>
+              <p className="text-sm text-muted-foreground">
+                Report your first issue to get started
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      {Object.entries(groupedIssues).map(([status, statusIssues]) => (
-        <div key={status} className="space-y-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            {statusLabels[status as keyof typeof statusLabels]}
-            <Badge variant="secondary">{statusIssues.length}</Badge>
-          </h2>
+    <div className="space-y-6">
+      {searchQuery && searchQuery.trim().length >= 2 && totalCount > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Found {totalCount} {totalCount === 1 ? 'issue' : 'issues'} matching &quot;{searchQuery}&quot;
+        </p>
+      )}
+      <div className="grid gap-6 md:grid-cols-3">
+        {Object.entries(groupedIssues).map(([status, statusIssues]) => (
+          <div key={status} className="space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {statusLabels[status as keyof typeof statusLabels]}
+              <Badge variant="secondary">{statusIssues.length}</Badge>
+            </h2>
           <div className="space-y-3">
             {statusIssues.map((issue: Issue) => (
               <IssueDetailsDialog key={issue.id} issue={issue}>
@@ -108,6 +158,7 @@ export async function IssueList({ projectId }: { projectId: string }) {
           </div>
         </div>
       ))}
+      </div>
     </div>
   )
 }
