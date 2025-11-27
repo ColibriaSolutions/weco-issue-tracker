@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Upload, X } from 'lucide-react'
+import { REGIONS } from '@/lib/constants/regions'
 import { createIssue, uploadScreenshot } from '@/app/actions/issue-actions'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
@@ -31,6 +32,7 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(false)
   const [screenshot, setScreenshot] = useState<File | null>(null)
   const [priority, setPriority] = useState<string>('medium')
+  const [region, setRegion] = useState<string>(REGIONS[0].code)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -90,6 +92,7 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
         title,
         description,
         priority,
+        region,
         screenshotUrl,
       })
 
@@ -184,6 +187,21 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="high">High</SelectItem>
                   <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent >
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="region">Region</Label>
+              <Select value={region} onValueChange={setRegion}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select region" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REGIONS.map((r) => (
+                    <SelectItem key={r.code} value={r.code}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -242,14 +260,14 @@ export function CreateIssueDialog({ projectId }: { projectId: string }) {
                 </div>
               )}
             </div>
-          </div>
+          </div >
           <DialogFooter>
             <Button type="submit" disabled={loading}>
               {loading ? 'Creating...' : 'Create Issue'}
             </Button>
           </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </form >
+      </DialogContent >
+    </Dialog >
   )
 }

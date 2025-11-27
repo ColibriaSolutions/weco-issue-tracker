@@ -86,7 +86,7 @@ export async function PATCH(
         )
     }
 
-    let title, description, status, priority, screenshotUrl = null
+    let title, description, status, priority, region, screenshotUrl = null
     let removeScreenshot = false
 
     // Handle both JSON and multipart/form-data
@@ -96,6 +96,7 @@ export async function PATCH(
         description = formData.get('description') as string | null
         status = formData.get('status') as string | null
         priority = formData.get('priority') as string | null
+        region = formData.get('region') as string | null
         removeScreenshot = formData.get('remove_screenshot') === 'true'
 
         // Handle screenshot file upload
@@ -138,12 +139,13 @@ export async function PATCH(
         description = body.description
         status = body.status
         priority = body.priority
+        region = body.region
         screenshotUrl = body.screenshot_url
         removeScreenshot = body.remove_screenshot === true
     }
 
     // Validate at least one field is being updated
-    if (!title && description === null && description === undefined && !status && !priority && !screenshotUrl && !removeScreenshot) {
+    if (!title && description === null && description === undefined && !status && !priority && !region && !screenshotUrl && !removeScreenshot) {
         return NextResponse.json(
             { error: 'At least one field must be provided for update' },
             { status: 400 }
@@ -174,6 +176,7 @@ export async function PATCH(
     if (description !== undefined && description !== null) updates.description = description
     if (status) updates.status = status
     if (priority) updates.priority = priority
+    if (region) updates.region = region
     if (screenshotUrl) updates.screenshot_url = screenshotUrl
     if (removeScreenshot) updates.screenshot_url = null
 
