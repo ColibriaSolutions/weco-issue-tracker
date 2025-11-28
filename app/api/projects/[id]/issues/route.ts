@@ -23,20 +23,60 @@ export async function GET(
     const page = parseInt(searchParams.get('page') || '1')
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
     const offset = (page - 1) * limit
+    const searchQuery = searchParams.get('search')?.trim() || null
 
     const supabase = createServiceRoleClient()
 
-    // Get total count
-    const { count } = await supabase
+    // Build base query
+    let countQuery = supabase
         .from('issues')
         .select('*', { count: 'exact', head: true })
         .eq('project_id', id)
 
-    // Get paginated issues
-    const { data: issues, error } = await supabase
+    let issuesQuery = supabase
         .from('issues')
-        .select('*')
+        .select(`
+            *,
+            creator:created_by (
+                full_name,
+                department,
+                region
+            )
+        `)
         .eq('project_id', id)
+
+    // Apply search filter if provided (minimum 2 characters)
+    if (searchQuery && searchQuery.length >= 2) {
+        const searchPattern = `%${searchQuery}%`
+        
+        // First, find user IDs that match the creator name
+        const { data: matchingProfiles } = await supabase
+            .from('profiles')
+            .select('id')
+            .ilike('full_name', searchPattern)
+        
+        const matchingUserIds = matchingProfiles?.map(p => p.id) || []
+        
+        // Build OR condition: title matches OR created_by is in matching user IDs
+        if (matchingUserIds.length > 0) {
+            // Use .or() with proper PostgREST syntax
+            // Format: "field.operator.value,field2.operator.value2"
+            // For .in(), use parentheses: field.in.(value1,value2)
+            const orCondition = `title.ilike.${searchPattern},created_by.in.(${matchingUserIds.join(',')})`
+            countQuery = countQuery.or(orCondition)
+            issuesQuery = issuesQuery.or(orCondition)
+        } else {
+            // Only search by title if no matching creators found
+            countQuery = countQuery.ilike('title', searchPattern)
+            issuesQuery = issuesQuery.ilike('title', searchPattern)
+        }
+    }
+
+    // Get total count
+    const { count } = await countQuery
+
+    // Get paginated issues
+    const { data: issues, error } = await issuesQuery
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
 

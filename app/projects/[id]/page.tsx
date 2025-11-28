@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { IssueList } from '@/components/issue-list'
+import { IssueSearch } from '@/components/issue-search'
 import { CreateIssueDialog } from '@/components/create-issue-dialog'
 import { ManageMembersDialog } from '@/components/project/manage-members-dialog'
 import { ArrowLeft } from 'lucide-react'
@@ -10,10 +11,14 @@ import { Button } from '@/components/ui/button'
 
 export default async function ProjectPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ search?: string }>
 }) {
   const { id } = await params
+  const { search } = await searchParams
+  const searchQuery = search?.trim() || null
   const supabase = await createServerClient()
 
   const { data: project, error } = await supabase
@@ -74,8 +79,11 @@ export default async function ProjectPage({
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <IssueSearch projectId={id} />
+        </div>
         <Suspense fallback={<div>Loading issues...</div>}>
-          <IssueList projectId={id} />
+          <IssueList projectId={id} searchQuery={searchQuery} />
         </Suspense>
       </main>
     </div>
